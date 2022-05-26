@@ -1,6 +1,11 @@
 # data and models folders
 q3/data/
 q3/models/
+
+q12/data/
+q12/d2v.model
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
