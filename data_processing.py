@@ -6,6 +6,7 @@ import pandas as pd
 import datasets
 from datasets import load_dataset
 from sklearn.model_selection import StratifiedKFold
+from torch.utils.data import DataLoader
 
 
 def create_folds(df: pd.DataFrame, label_name: str, num_folds: int, seed: int = 11) -> pd.DataFrame:
@@ -42,19 +43,23 @@ def preprocess(txt: str) -> str:
     return txt
 
 
-def create_datasetdict(df:pd.DataFrame, fold: int) -> datasets.dataset_dict.DatasetDict:
+def create_datasetdict(df:pd.DataFrame, fold: int = None, test_data=False) -> datasets.dataset_dict.DatasetDict:
     """
     The function creates DatasetDict according to the fold.
     It temporery save the files in `data` folder and delets it.
+    If fold = None it will create only train set
     """
-    assert df.fold.max() >= fold, f'fold: {fold} is out of range. max fold is: {df.fold.max()}'
-
     # Helper function that will help us remove files.
     def remove_file(filename: str):
         if os.path.isfile(filename):
             os.remove(filename)
-        
-    
+
+    cols_to_use = ['id', 'tweet']
+    if not test_data:
+        cols_to_use.append('label')
+
+    df_f = df.copy()
+
     train_filename = 'data/train_temp.csv'
     test_filename = 'data/test_temp.csv'
 
@@ -62,21 +67,48 @@ def create_datasetdict(df:pd.DataFrame, fold: int) -> datasets.dataset_dict.Data
     remove_file(train_filename)
     remove_file(test_filename)
 
-    df.dropna(inplace=True)
 
-    # split to train and test
-    train, test = df[df.fold != fold], df[df.fold == fold]
-    train = train.dropna()
-    test = test.dropna()
+    if fold is not None:
+        assert df.fold.max() >= fold, f'fold: {fold} is out of range. max fold is: {df.fold.max()}'
+            
+        df_f.dropna(inplace=True)
 
-    # temporery save them to for easy loading
-    train[['tweet', 'label']].to_csv(train_filename, index=False)
-    test[['tweet', 'label']].to_csv(test_filename, index=False)
+        # split to train and test
+        train, test = df_f[df_f.fold != fold], df_f[df_f.fold == fold]
+        train = train.dropna()
+        test = test.dropna()
 
-    # loading
-    dataset = load_dataset('csv', data_files={'train': train_filename, 'test': test_filename})
+        # temporery save them to for easy loading
+        train[cols_to_use].to_csv(train_filename, index=False)
+        test[cols_to_use].to_csv(test_filename, index=False)
 
-    remove_file(train_filename)
-    remove_file(test_filename)
+        # loading
+        dataset = load_dataset('csv', data_files={'train': train_filename, 'test': test_filename})
+
+        remove_file(train_filename)
+        remove_file(test_filename)
+    
+    else:  # Load the whole dataset as train.
+        train = df_f.dropna()
+        train[cols_to_use].to_csv(train_filename, index=False)
+        dataset = load_dataset('csv', data_files={'train': train_filename})
+        remove_file(train_filename)
+
 
     return dataset
+
+def create_dataloader_from_tokenized(datasets: datasets.dataset_dict.DatasetDict, batch_size=8) -> (DataLoader, DataLoader):
+    datasets = datasets.remove_columns(["tweet"])
+    datasets = datasets.rename_column("label", "labels")
+    datasets.set_format("torch")
+    
+    train_dataloader = DataLoader(datasets['train'], shuffle=True, batch_size=batch_size)
+    eval_dataloader = None
+
+    if len(datasets.keys()) == 2:
+        # If the dataset has test and train
+        eval_dataloader = DataLoader(datasets['test'], batch_size=8)
+
+    return train_dataloader, eval_dataloader
+    
+    
