@@ -7,8 +7,8 @@ import torch
 from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
 from transformers import get_scheduler
-from data_processing import create_datasetdict
-from data_processing import create_dataloader_from_tokenized
+from q3.data_processing import create_datasetdict
+from q3.data_processing import create_dataloader_from_tokenized
 from tqdm.auto import tqdm
 from datetime import datetime
 from torch.utils.data import DataLoader
@@ -117,9 +117,9 @@ class Trainer:
         # if self.save_model:
         #     fold = self.fold if self.fold else 'all'
         #     if self.output_name:
-        #         outfile = f'models/{self.output_name}_fold-{fold}_{datetime.now().strftime("%d-%m-%Y_%H:%M")}'
+        #         outfile = f'q3/models/{self.output_name}_fold-{fold}_{datetime.now().strftime("%d-%m-%Y_%H:%M")}'
         #     else:
-        #         outfile = f'models/fold-{fold}_{datetime.now().strftime("%d-%m-%Y_%H:%M")}'        
+        #         outfile = f'q3/models/fold-{fold}_{datetime.now().strftime("%d-%m-%Y_%H:%M")}'        
             
         #     saved_state = dict(
         #         model_state = self.model.state_dict(),

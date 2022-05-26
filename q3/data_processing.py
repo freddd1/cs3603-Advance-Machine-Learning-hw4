@@ -60,8 +60,8 @@ def create_datasetdict(df:pd.DataFrame, fold: int = None, test_data=False) -> da
 
     df_f = df.copy()
 
-    train_filename = 'data/train_temp.csv'
-    test_filename = 'data/test_temp.csv'
+    train_filename = 'q3/data/train_temp.csv'
+    test_filename = 'q3/data/test_temp.csv'
 
 
     remove_file(train_filename)
